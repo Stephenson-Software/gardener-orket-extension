@@ -1,5 +1,5 @@
 manifest_version: v0
-extension_id: orket.extension-template
+extension_id: stephenson.gardener-orket
 extension_version: 0.1.0
 workloads:
   - workload_id: generate
