@@ -8,6 +8,25 @@ This is a headless Orket extension built from
 [McElyea/Orket-Extension-Template](https://github.com/McElyea/Orket-Extension-Template).
 It needs no change to Orket.
 
+## Which path to use
+
+Orket 0.8.1 ships its own governed Gardener harness,
+[`examples/gardener_harness/`](https://github.com/McElyea/Orket/tree/main/examples/gardener_harness).
+It runs each dispatch as a governed agent run:
+- snapshots come from committed Git objects, from clean repositories only;
+- the host's `structured_report.v1` verifier checks the report;
+- final truth is recorded, and runs can be inspected and replayed.
+
+Use it when you want that evidence and can serve a model through llama.cpp,
+or through Ollama with a large enough context.
+
+This extension is the lighter alternative:
+- one call to a running Orket host's generic runtime API;
+- checks done here, not by Orket: report citations against the snapshot;
+- no extension install into a project catalog, and no clean-repository
+  requirement;
+- no durable run record beyond gardener's own.
+
 ```text
 gardener (command harness) -> orket-extension gardener -> ExtensionService.audit
     -> HostRuntimeClient -> Orket /v1/extensions/{id}/runtime/llm/generate -> host model
@@ -116,8 +135,8 @@ python -m build
 ```
 
 The tests use real sockets with a simulated host. They do not exercise Orket
-or a model. Live verification is recorded in
-[docs/verification.md](docs/verification.md).
+or a model. Live verification, including runs that refused or timed out with a
+3B model, is recorded in [docs/verification.md](docs/verification.md).
 
 ## Limits
 
