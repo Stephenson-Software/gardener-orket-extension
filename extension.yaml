@@ -1,0 +1,8 @@
+manifest_version: v0
+extension_id: orket.extension-template
+extension_version: 0.1.0
+workloads:
+  - workload_id: generate
+    entrypoint: extension_template.workload:run
+    required_capabilities:
+      - model.generate
