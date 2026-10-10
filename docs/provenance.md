@@ -17,3 +17,12 @@ SDK contracts used here are available in the installed 0.7.1 SDK and the inspect
 source. Install an official SDK distribution explicitly; do not assume it is on public PyPI.
 The Apache-2.0 license and Orket notice are retained from the in-tree starter. No Companion
 UI, assets, configuration, or product behavior is copied.
+
+## This repository
+
+Created on 2026-10-10 with GitHub's "Use this template" from
+`McElyea/Orket-Extension-Template` at `d8ba8ca`, then customized with
+`scripts/customize.py --name gardener-orket-extension --extension-id stephenson.gardener-orket`.
+The gardener harness (`gardener.py`, `snapshot.py`, the audit rules in `domain.py`
+and `ExtensionService.audit`) is added on top. The template's host adapter,
+gateway, settings precedence and SDK workload example are kept.

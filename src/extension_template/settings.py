@@ -51,14 +51,25 @@ class Settings:
             )
 
 
-def load_settings(directory: Path | None = None, *, environ: Mapping[str, str] | None = None) -> Settings:
-    """Read only the selected directory; never mutate the process environment."""
+def load_settings(
+    directory: Path | None = None,
+    *,
+    environ: Mapping[str, str] | None = None,
+    read_files: bool = True,
+) -> Settings:
+    """Read only the selected directory; never mutate the process environment.
+
+    ``read_files=False`` reads the environment alone, for callers whose working
+    directory is not theirs to trust (gardener runs its harness in a target clone).
+    """
     root = directory if directory is not None else Path.cwd()
-    values = {
-        **dotenv_values(root / ".env", interpolate=False),
-        **dotenv_values(root / ".env.local", interpolate=False),
-        **(os.environ if environ is None else environ),
-    }
+    files: dict = {}
+    if read_files:
+        files = {
+            **dotenv_values(root / ".env", interpolate=False),
+            **dotenv_values(root / ".env.local", interpolate=False),
+        }
+    values = {**files, **(os.environ if environ is None else environ)}
 
     def value(name: str, default: str = "") -> str:
         return str(values.get(name) or default).strip()
