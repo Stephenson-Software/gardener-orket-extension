@@ -100,7 +100,9 @@ def test_runtime_routes_and_credentials(operation, kwargs, method, suffix, body)
     [
         (httpx.Response(401, text="host-secret"), "E_HOST_AUTH", 503),
         (httpx.Response(403, text="host-secret"), "E_HOST_AUTH", 503),
-        (httpx.Response(500, text="host-secret"), "E_HOST_HTTP", 502),
+        (httpx.Response(500, text="host-secret"), "E_HOST_SERVER", 502),
+        (httpx.Response(503, text="host-secret"), "E_HOST_SERVER", 502),
+        (httpx.Response(404, text="host-secret"), "E_HOST_HTTP", 502),
         (httpx.Response(302, headers={"Location": "https://other.example/"}), "E_HOST_HTTP", 502),
         (httpx.Response(200, text="not json"), "E_HOST_RESPONSE", 502),
         (httpx.Response(200, json=[]), "E_HOST_RESPONSE", 502),
