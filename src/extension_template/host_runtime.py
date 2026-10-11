@@ -1,3 +1,4 @@
+import re
 from typing import Any, Literal
 from urllib.parse import quote
 
@@ -45,12 +46,13 @@ class HostRuntimeClient:
         if response.status_code in {401, 403}:
             raise ExtensionError("E_HOST_AUTH", "Orket rejected the configured host credentials.", status=503)
         if 500 <= response.status_code < 600:
-            # Orket 0.8.2 surfaces a model timeout on this API as a bare 500
-            # (McElyea/Orket#6), so a server error is kept distinct: it is a
-            # host-wide condition, not something about this request.
-            raise ExtensionError("E_HOST_SERVER", f"Orket returned HTTP {response.status_code}.")
+            # A host-wide condition, not something about this request: Orket
+            # 0.8.2 surfaced a model timeout as a bare 500 (McElyea/Orket#6),
+            # and 0.8.4 returns a typed 504/503 for a timeout or an
+            # unavailable model.
+            raise ExtensionError("E_HOST_SERVER", _http_failure(response))
         if not 200 <= response.status_code < 300:
-            raise ExtensionError("E_HOST_HTTP", f"Orket returned HTTP {response.status_code}.")
+            raise ExtensionError("E_HOST_HTTP", _http_failure(response))
         try:
             payload = response.json()
         except ValueError as exc:
@@ -190,3 +192,36 @@ class HostRuntimeClient:
                 "speed": speed,
             },
         )
+
+
+_TYPED_CODE = re.compile(r"^E_[A-Z0-9_]{1,80}$")
+# A typed Orket message such as `E_MODEL_INPUT_BUDGET: utf8_byte_estimate=17051,
+# input_limit=8192; ...`: names, numbers and punctuation only. Anything else
+# falls back to the code alone, so free text from upstream never comes through.
+_PLAIN_MESSAGE = re.compile(r"^[A-Za-z0-9_=:;,. ()/-]+$")
+
+
+def _http_failure(response: httpx.Response) -> str:
+    """`Orket returned HTTP <status>.`, plus Orket's own typed reason when it
+    gave one. Since 0.8.3/0.8.4 the runtime API answers a refused request
+    with `detail: {ok: false, code, message}`. For example, `E_MODEL_INPUT_BUDGET`
+    with the estimate and the limits is the only way to tell that the host's
+    profile is too small for the prompt. Only that typed shape is used, and
+    its message only when it is plain names, numbers and punctuation: an
+    arbitrary response body is never echoed back."""
+    text = f"Orket returned HTTP {response.status_code}."
+    try:
+        detail = response.json().get("detail")
+    except (ValueError, AttributeError):
+        return text
+    if not isinstance(detail, dict):
+        return text
+    code, message = detail.get("code"), detail.get("message")
+    if not isinstance(code, str) or not _TYPED_CODE.match(code):
+        return text
+    reason = code
+    if isinstance(message, str) and message.startswith(code):
+        flat = " ".join(message.split())[:400]
+        if _PLAIN_MESSAGE.match(flat):
+            reason = flat
+    return f"{text[:-1]}: {reason}"

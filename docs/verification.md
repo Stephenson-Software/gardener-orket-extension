@@ -76,3 +76,24 @@ This extension's default snapshot budget stays far below that limit.
 
 Since this recheck, a host server error or timeout is reported as
 `"blocked": true`, so a gardener batch stops on it.
+
+## Orket 0.8.4 recheck (2026-10-11)
+
+The host ran Orket `v0.8.4` (`048e7468`) on the same machine, with Ollama
+back on its default settings.
+
+| Probe or run | Outcome |
+|---|---|
+| `llm/generate`, 664-character message | answered correctly (202 input tokens) |
+| `llm/generate`, 16.5 KB and 83 KB messages | HTTP 400 `E_MODEL_INPUT_BUDGET`, before generation: no longer silently dropped (#6 fixed) |
+| `orket-extension gardener`, host on the default 8,192-token profile, any snapshot size (3 KB, 8 KB, 24 KB) | refused with HTTP 400 `E_MODEL_INPUT_BUDGET`: gardener's prompt and the output budget exceed the profile |
+| The same, host started with a 32,768-token profile | reached the model, with 8 KB (77 s) and 24 KB (143 s) snapshots. `llama3.2:3b` cited no source, and the citation check refused both (`E_REPORT_UNSOURCED`) |
+
+Since this recheck:
+- the extension passes on Orket's typed error code, and the message too when
+  it is plain (see `host_runtime._http_failure`);
+- the README says how to raise the host's profile.
+
+The model is still the limiting factor: on 0.8.4, `qwen2.5:7b` delivered
+through Orket's own governed harness, but `llama3.2:3b` did not deliver on
+either path.

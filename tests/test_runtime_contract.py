@@ -131,6 +131,51 @@ def test_upstream_failure_is_safe_and_never_retried(response, code, status):
 
 
 @pytest.mark.parametrize(
+    "response,code,expected,absent",
+    [
+        # Orket 0.8.3+: the host's profile is too small for the prompt.
+        (httpx.Response(400, json={"detail": {"ok": False, "code": "E_MODEL_INPUT_BUDGET",
+                                              "message": "E_MODEL_INPUT_BUDGET: utf8_byte_estimate=17051, "
+                                                         "input_limit=8192, context_limit=8192"}}),
+         "E_HOST_HTTP", "HTTP 400: E_MODEL_INPUT_BUDGET: utf8_byte_estimate=17051, input_limit=8192", None),
+        # Orket 0.8.4: a typed model timeout is still a host-wide failure.
+        (httpx.Response(504, json={"detail": {
+            "ok": False, "code": "E_EXTENSION_MODEL_PROVIDER_TIMEOUT",
+            "message": "E_EXTENSION_MODEL_PROVIDER_TIMEOUT: model timed out"}}),
+         "E_HOST_SERVER", "HTTP 504: E_EXTENSION_MODEL_PROVIDER_TIMEOUT", None),
+        # A message that is not plain falls back to the code alone.
+        (httpx.Response(400, json={"detail": {"ok": False, "code": "E_SOMETHING",
+                                              "message": "E_SOMETHING: <host-secret> {\"k\": 1}"}}),
+         "E_HOST_HTTP", "HTTP 400: E_SOMETHING", "host-secret"),
+        # A message that does not start with its code is never shown.
+        (httpx.Response(400, json={"detail": {"ok": False, "code": "E_SOMETHING", "message": "host-secret"}}),
+         "E_HOST_HTTP", "HTTP 400: E_SOMETHING", "host-secret"),
+        # A code that is not a typed code is ignored entirely.
+        (httpx.Response(400, json={"detail": {"ok": False, "code": "host-secret", "message": "host-secret"}}),
+         "E_HOST_HTTP", "Orket returned HTTP 400.", "host-secret"),
+        (httpx.Response(400, json={"detail": "host-secret"}), "E_HOST_HTTP", "Orket returned HTTP 400.",
+         "host-secret"),
+    ],
+)
+def test_orkets_typed_reason_is_passed_on_and_nothing_else(response, code, expected, absent):
+    def handler(request):
+        return response
+
+    async def run():
+        async with HostRuntimeClient(
+            Settings(host_api_key="host-secret"), transport=httpx.MockTransport(handler)
+        ) as client:
+            with pytest.raises(ExtensionError) as error:
+                await client.status()
+            assert error.value.code == code
+            assert expected in error.value.message
+            if absent:
+                assert absent not in json.dumps(error.value.as_dict())
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize(
     "exception,code",
     [
         (httpx.ReadTimeout, "E_HOST_TIMEOUT"),
