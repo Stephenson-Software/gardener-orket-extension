@@ -52,7 +52,13 @@ class HostRuntimeClient:
             # unavailable model.
             raise ExtensionError("E_HOST_SERVER", _http_failure(response))
         if not 200 <= response.status_code < 300:
-            raise ExtensionError("E_HOST_HTTP", _http_failure(response))
+            # Orket (0.8.2+) refuses a request above the host profile's
+            # output ceiling instead of silently lowering it. The same
+            # request goes out for every repository, so this one is
+            # host-wide too, unlike an input budget, which depends on the
+            # repository's size.
+            code = "E_HOST_OUTPUT_LIMIT" if _typed_code(response) == "E_MODEL_OUTPUT_LIMIT" else "E_HOST_HTTP"
+            raise ExtensionError(code, _http_failure(response))
         try:
             payload = response.json()
         except ValueError as exc:
@@ -199,6 +205,16 @@ _TYPED_CODE = re.compile(r"^E_[A-Z0-9_]{1,80}$")
 # input_limit=8192; ...`: names, numbers and punctuation only. Anything else
 # falls back to the code alone, so free text from upstream never comes through.
 _PLAIN_MESSAGE = re.compile(r"^[A-Za-z0-9_=:;,. ()/-]+$")
+
+
+def _typed_code(response: httpx.Response) -> str | None:
+    """Orket's typed error code from `detail.code`, or None."""
+    try:
+        detail = response.json().get("detail")
+    except (ValueError, AttributeError):
+        return None
+    code = detail.get("code") if isinstance(detail, dict) else None
+    return code if isinstance(code, str) and _TYPED_CODE.match(code) else None
 
 
 def _http_failure(response: httpx.Response) -> str:

@@ -97,3 +97,25 @@ Since this recheck:
 The model is still the limiting factor: on 0.8.4, `qwen2.5:7b` delivered
 through Orket's own governed harness, but `llama3.2:3b` did not deliver on
 either path.
+
+## Orket 0.8.8 recheck (2026-10-11)
+
+The host ran Orket `v0.8.8` (`631444b5`) on the same machine, Ollama on its
+default settings, `qwen2.5:7b`. Each run went through gardener's real
+`align` prompt, using gardener's integration sandbox.
+
+| Host profile | Request | Outcome |
+|---|---|---|
+| packaged 8,192 tokens | 1,024 output tokens (the old default) | HTTP 400 `E_MODEL_OUTPUT_LIMIT: requested=1024, effective=768`, in 0.4 s. The qwen profile's ceiling on this API is 768. The 0.8.4 recheck used `llama3.2:3b`, whose profile allows 1,536, so it did not show then |
+| packaged 8,192 tokens | 768 output tokens | HTTP 400 `E_MODEL_INPUT_BUDGET: utf8_byte_estimate=7538, input_limit=8192 ...`. The message now names `ORKET_LOCAL_PROMPT_PROFILE_REGISTRY_PATH` (0.8.6) and says the input was not truncated |
+| 32,768 tokens | 768 output tokens | reached the model (70 s). `qwen2.5:7b` cited no source, so the citation check refused it (`E_REPORT_UNSOURCED`) |
+
+Since this recheck:
+- the default request is 768 tokens;
+- an output-ceiling refusal is reported as `blocked` (`E_HOST_OUTPUT_LIMIT`),
+  confirmed against the live 0.8.8 host with a 1,024-token request.
+
+The model is still the limit on this path: neither `llama3.2:3b` nor
+`qwen2.5:7b` has produced a cited report through the extension on this
+machine. `qwen2.5:7b` does deliver through Orket's own governed harness; see
+gardener's `docs/verification/orket-0.8.8.md`.

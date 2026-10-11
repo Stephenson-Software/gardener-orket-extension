@@ -31,6 +31,12 @@ def host():
             state["requests"].append((self.path, self.headers.get("X-API-Key"), payload))
             if state["status"] != 200:
                 self.send_response(state["status"])
+                if state.get("detail"):
+                    body = json.dumps({"detail": state["detail"]}).encode()
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(body)
+                    return
                 self.end_headers()
                 return
             body = json.dumps({"ok": True, "text": state["reply"], "model": "simulated-model",
@@ -158,6 +164,34 @@ def test_a_configuration_error_is_blocked_before_the_host_is_called(host, tmp_pa
     assert exit_code == 1 and out["is_error"] is True and out["blocked"] is True, out
     assert f"{code}:" in out["result"], out["result"]
     assert state["requests"] == []
+
+
+@pytest.mark.parametrize("orket_code,code,blocked", [
+    ("E_MODEL_OUTPUT_LIMIT", "E_HOST_OUTPUT_LIMIT", True),
+    ("E_MODEL_INPUT_BUDGET", "E_HOST_HTTP", False),
+])
+def test_an_output_ceiling_refusal_is_blocked_but_an_input_budget_is_not(
+    host, tmp_path, orket_code, code, blocked
+):
+    """Orket 0.8.5+ refuses a request above the host's output ceiling. The same
+    request goes to every repository, so it stops the batch; an input budget
+    depends on the repository's size, so it fails only this one."""
+    port, state = host
+    state["status"] = 400
+    message = f"{orket_code}: requested=1024, effective=768"
+    state["detail"] = {"ok": False, "code": orket_code, "message": message}
+    exit_code, out = _run(_clone(tmp_path), port)
+    assert exit_code == 1 and out["is_error"] is True and out["blocked"] is blocked, out
+    assert f"{code}:" in out["result"] and orket_code in out["result"]
+
+
+def test_the_default_output_request_fits_every_packaged_orket_profile(host, tmp_path):
+    """768 is the lowest packaged `concise_text` ceiling; 1024 was refused by
+    most packaged profiles from Orket 0.8.5."""
+    port, state = host
+    exit_code, _out = _run(_clone(tmp_path), port)
+    assert exit_code == 0
+    assert state["requests"][-1][2]["max_tokens"] == 768
 
 
 def test_a_target_clones_env_file_is_never_read(host, tmp_path):
