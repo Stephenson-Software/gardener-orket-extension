@@ -54,8 +54,8 @@ file or shell tools, only text.
    prompt on stdin and `GARDENER_HARNESS_MODE` / `_SPEC` / `_MODEL` /
    `_TIMEOUT` in the environment.
 2. The snapshot is built in this order, within byte budgets:
-   - files the prompt names, only if they're under the clone or the spec's
-     `add_dirs`;
+   - files the prompt names by absolute path, only if they're under the clone
+     or the spec's `add_dirs` (a relative path in the prompt is not picked up);
    - the repository's own docs;
    - its `git ls-files` listing.
 
@@ -116,16 +116,18 @@ Optional settings, all read from the environment:
 | `GARDENER_ORKET_MAX_FILE_BYTES` | `6000` | Per-file cap |
 | `GARDENER_ORKET_MAX_FILES` | `400` | Listing entries |
 | `GARDENER_ORKET_DOCS` | `README.md,CLAUDE.md,AGENTS.md,CONTRIBUTING.md,SECURITY.md` | Repository docs to include |
-| `EXTENSION_TIMEOUT_SECONDS` | `GARDENER_HARNESS_TIMEOUT` | Host request timeout |
+| `EXTENSION_TIMEOUT_SECONDS` | `GARDENER_HARNESS_TIMEOUT`, else `300` | Host request timeout, in seconds |
 
 These are reported with `"blocked": true`, so a gardener overnight batch
 stops instead of failing every repository the same way:
 - an unreachable host, or rejected or missing credentials;
+- an invalid `EXTENSION_HOST_BASE_URL`;
 - a host server error (HTTP 5xx), which is how Orket 0.8.2 reports a model
   timeout on this API (McElyea/Orket#6);
 - a request timeout.
 
-Any other HTTP error fails only the current repository.
+Any other failure, including any other HTTP error, fails only the current
+repository.
 
 ## Other commands
 
