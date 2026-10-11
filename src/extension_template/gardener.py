@@ -24,6 +24,11 @@ from .settings import Settings
 from .snapshot import SnapshotLimits, collect_sources
 
 MAX_PROMPT_CHARS = 64_000
+# The lowest output ceiling among Orket's packaged profiles for this API (the
+# `concise_text` bundle). Orket refuses a larger request rather than lowering
+# it, so 1024, the old default, failed on most packaged profiles, Ollama's
+# qwen profile among them (768); its llama profile allows 1536.
+DEFAULT_MAX_TOKENS = 768
 # Failures that will repeat for every repository in a gardener batch, so the
 # envelope says `blocked` and gardener stops the batch instead of failing each
 # repo the same way. A server error or a timeout means the host or its model is
@@ -31,8 +36,8 @@ MAX_PROMPT_CHARS = 64_000
 # configuration error is here too: settings come from the environment, which is
 # the same for every repository in the batch.
 DEVICE_ERRORS = frozenset({"E_HOST_UNREACHABLE", "E_HOST_AUTH", "E_HOST_KEY_REQUIRED", "E_HOST_SERVER",
-                           "E_HOST_TIMEOUT", "E_CONFIG_URL", "E_CONFIG_ID", "E_CONFIG_TIMEOUT",
-                           "E_CONFIG_LIMIT", "E_CONFIG_SPEC"})
+                           "E_HOST_TIMEOUT", "E_HOST_OUTPUT_LIMIT", "E_CONFIG_URL", "E_CONFIG_ID",
+                           "E_CONFIG_TIMEOUT", "E_CONFIG_LIMIT", "E_CONFIG_SPEC"})
 
 
 def envelope(result: str, *, is_error: bool, session_id: str | None = None, blocked: bool = False) -> dict:
@@ -73,7 +78,7 @@ def audit_request(prompt: str, cwd: Path, environ: Mapping[str, str]) -> AuditIn
         sources=[AuditSource(ref=s.ref, path=s.path, text=s.text) for s in sources],
         provider=str(environ.get("GARDENER_ORKET_PROVIDER") or "").strip(),
         model=str(environ.get("GARDENER_HARNESS_MODEL") or "").strip(),
-        max_tokens=_int(environ, "GARDENER_ORKET_MAX_TOKENS", 1024),
+        max_tokens=_int(environ, "GARDENER_ORKET_MAX_TOKENS", DEFAULT_MAX_TOKENS),
         report_words=_int(environ, "GARDENER_ORKET_REPORT_WORDS", 250),
     )
 

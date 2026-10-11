@@ -110,7 +110,7 @@ Optional settings, all read from the environment:
 | Setting | Default | Meaning |
 |---|---|---|
 | `GARDENER_ORKET_PROVIDER` | host default | Provider requested from the host |
-| `GARDENER_ORKET_MAX_TOKENS` | `1024` | Output tokens requested |
+| `GARDENER_ORKET_MAX_TOKENS` | `768` | Output tokens requested. 768 is the lowest output ceiling among Orket's packaged profiles for this API; raise it only with a host profile that allows more |
 | `GARDENER_ORKET_REPORT_WORDS` | `250` | Report length asked of the model |
 | `GARDENER_ORKET_MAX_TOTAL_BYTES` | `24000` | Snapshot text budget |
 | `GARDENER_ORKET_MAX_FILE_BYTES` | `6000` | Per-file cap |
@@ -129,7 +129,11 @@ stops instead of failing every repository the same way:
   for every repository;
 - a host server error (HTTP 5xx), which is how Orket 0.8.2 reports a model
   timeout on this API (McElyea/Orket#6);
-- a request timeout.
+- a request timeout;
+- a request above the host profile's output ceiling (Orket answers
+  `E_MODEL_OUTPUT_LIMIT`, shown as `E_HOST_OUTPUT_LIMIT`). Every repository
+  sends the same request size, unlike the input, which depends on the
+  repository.
 
 Any other failure, including any other HTTP error, fails only the current
 repository.
@@ -165,6 +169,12 @@ or a model. Live verification, including runs that refused or timed out with a
   `ORKET_LOCAL_PROMPT_PROFILE_REGISTRY_PATH` at a copy of Orket's
   `orket/runtime/config/local_prompt_profiles.json` whose profile for your
   model has a larger `context_budget_tokens` (32,768 worked in testing).
+  Since Orket 0.8.6 the refusal names that setting.
+- **The host's profile also caps the output.** A request above the
+  profile's output ceiling is refused, not lowered. The ceiling depends on
+  the model's profile: 768 tokens for Ollama's qwen profile, 1,536 for its
+  llama profile. The default request, 768 tokens, fits every packaged
+  profile.
   - **Before 0.8.3:** the API did not set the context at all, so a prompt
     longer than the server's context was silently dropped
     (McElyea/Orket#6).
