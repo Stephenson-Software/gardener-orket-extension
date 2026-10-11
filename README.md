@@ -149,11 +149,21 @@ or a model. Live verification, including runs that refused or timed out with a
 
 - **Snapshot only.** The model sees a bounded snapshot, not the repository,
   and can't check what it wasn't given.
-- **Context is the server's.** The generic runtime API this extension uses
-  does not set the model's context, even on Orket 0.8.2 (McElyea/Orket#6).
-  A prompt longer than the server's context (Ollama's default is 4,096
-  tokens) is dropped, not refused. Keep `GARDENER_ORKET_MAX_TOTAL_BYTES`
-  well under it, or raise the server's `OLLAMA_CONTEXT_LENGTH`.
+- **The host's profile sets the limit (Orket 0.8.3+).** The host sizes the
+  model's context from its prompt profile, and refuses a prompt that may not
+  fit with HTTP 400 `E_MODEL_INPUT_BUDGET`, shown in the error. It uses a
+  conservative byte-based estimate. With the packaged 8,192-token profile,
+  gardener's own prompt plus the output budget already exceeds it, so every
+  dispatch is refused. Start the host with a larger profile: point
+  `ORKET_LOCAL_PROMPT_PROFILE_REGISTRY_PATH` at a copy of Orket's
+  `orket/runtime/config/local_prompt_profiles.json` whose profile for your
+  model has a larger `context_budget_tokens` (32,768 worked in testing).
+  - **Before 0.8.3:** the API did not set the context at all, so a prompt
+    longer than the server's context was silently dropped
+    (McElyea/Orket#6).
+- **Unsupported content is refused.** Orket's typed refusals reach gardener
+  with their code. A host timeout or an unavailable model (HTTP 504/503 on
+  0.8.4) is reported as `blocked`.
 - **Small models.** With a small local model, keep the snapshot small. The
   observed run used `GARDENER_ORKET_MAX_TOTAL_BYTES=8000` with `llama3.2:3b`.
   Expect a checklist that is often wrong.
