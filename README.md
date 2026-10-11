@@ -121,7 +121,12 @@ Optional settings, all read from the environment:
 These are reported with `"blocked": true`, so a gardener overnight batch
 stops instead of failing every repository the same way:
 - an unreachable host, or rejected or missing credentials;
-- an invalid `EXTENSION_HOST_BASE_URL`;
+- an invalid setting: `EXTENSION_HOST_BASE_URL` (`E_CONFIG_URL`),
+  `EXTENSION_ID` (`E_CONFIG_ID`), `EXTENSION_TIMEOUT_SECONDS` or
+  `GARDENER_HARNESS_TIMEOUT` (`E_CONFIG_TIMEOUT`), a `GARDENER_ORKET_MAX_*`
+  limit (`E_CONFIG_LIMIT`), or a `GARDENER_HARNESS_SPEC` that is not JSON
+  (`E_CONFIG_SPEC`). Settings come from the environment, which is the same
+  for every repository;
 - a host server error (HTTP 5xx), which is how Orket 0.8.2 reports a model
   timeout on this API (McElyea/Orket#6);
 - a request timeout.

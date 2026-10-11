@@ -139,6 +139,27 @@ def test_a_host_server_error_is_blocked_but_a_client_error_is_not(host, tmp_path
     assert code in out["result"]
 
 
+@pytest.mark.parametrize("extra,code", [
+    ({"EXTENSION_HOST_BASE_URL": "ftp://example.test"}, "E_CONFIG_URL"),
+    ({"EXTENSION_ID": "not an id"}, "E_CONFIG_ID"),
+    ({"EXTENSION_TIMEOUT_SECONDS": "soon"}, "E_CONFIG_TIMEOUT"),
+    ({"EXTENSION_TIMEOUT_SECONDS": "-1"}, "E_CONFIG_TIMEOUT"),
+    ({"GARDENER_HARNESS_TIMEOUT": "soon"}, "E_CONFIG_TIMEOUT"),
+    ({"GARDENER_ORKET_MAX_TOTAL_BYTES": "lots"}, "E_CONFIG_LIMIT"),
+    ({"GARDENER_ORKET_MAX_FILES": "0"}, "E_CONFIG_LIMIT"),
+    ({"GARDENER_HARNESS_SPEC": "not json"}, "E_CONFIG_SPEC"),
+])
+def test_a_configuration_error_is_blocked_before_the_host_is_called(host, tmp_path, extra, code):
+    """Settings come from the environment, which is the same for every
+    repository in a gardener batch, so a bad one must stop the batch rather
+    than fail each repository the same way (#3)."""
+    port, state = host
+    exit_code, out = _run(_clone(tmp_path), port, extra=extra)
+    assert exit_code == 1 and out["is_error"] is True and out["blocked"] is True, out
+    assert f"{code}:" in out["result"], out["result"]
+    assert state["requests"] == []
+
+
 def test_a_target_clones_env_file_is_never_read(host, tmp_path):
     """gardener runs this command inside the target clone, so a repository's own
     .env must not be able to set the extension identity, host or credentials."""

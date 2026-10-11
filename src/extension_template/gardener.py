@@ -24,14 +24,15 @@ from .settings import Settings
 from .snapshot import SnapshotLimits, collect_sources
 
 MAX_PROMPT_CHARS = 64_000
-# Failures that say this device cannot reach or use its Orket host, so every
-# repository in a gardener overnight batch would fail identically.
 # Failures that will repeat for every repository in a gardener batch, so the
 # envelope says `blocked` and gardener stops the batch instead of failing each
 # repo the same way. A server error or a timeout means the host or its model is
-# failing or too slow, not that something about this repository is wrong.
-DEVICE_ERRORS = frozenset({"E_HOST_UNREACHABLE", "E_HOST_AUTH", "E_HOST_KEY_REQUIRED", "E_CONFIG_URL",
-                           "E_HOST_SERVER", "E_HOST_TIMEOUT"})
+# failing or too slow, not that something about this repository is wrong. Every
+# configuration error is here too: settings come from the environment, which is
+# the same for every repository in the batch.
+DEVICE_ERRORS = frozenset({"E_HOST_UNREACHABLE", "E_HOST_AUTH", "E_HOST_KEY_REQUIRED", "E_HOST_SERVER",
+                           "E_HOST_TIMEOUT", "E_CONFIG_URL", "E_CONFIG_ID", "E_CONFIG_TIMEOUT",
+                           "E_CONFIG_LIMIT", "E_CONFIG_SPEC"})
 
 
 def envelope(result: str, *, is_error: bool, session_id: str | None = None, blocked: bool = False) -> dict:
@@ -44,9 +45,9 @@ def _int(environ: Mapping[str, str], name: str, default: int) -> int:
     try:
         value = int(raw) if raw else default
     except ValueError as exc:
-        raise ExtensionError("E_CONFIG", f"{name} must be a whole number.", status=503) from exc
+        raise ExtensionError("E_CONFIG_LIMIT", f"{name} must be a whole number.", status=503) from exc
     if value <= 0:
-        raise ExtensionError("E_CONFIG", f"{name} must be positive.", status=503)
+        raise ExtensionError("E_CONFIG_LIMIT", f"{name} must be positive.", status=503)
     return value
 
 
@@ -64,7 +65,7 @@ def audit_request(prompt: str, cwd: Path, environ: Mapping[str, str]) -> AuditIn
     try:
         spec = json.loads(str(environ.get("GARDENER_HARNESS_SPEC") or "{}"))
     except json.JSONDecodeError as exc:
-        raise ExtensionError("E_CONFIG", "GARDENER_HARNESS_SPEC is not JSON.", status=503) from exc
+        raise ExtensionError("E_CONFIG_SPEC", "GARDENER_HARNESS_SPEC is not JSON.", status=503) from exc
     roots = [Path(item) for item in spec.get("add_dirs", [])] if isinstance(spec, dict) else []
     sources = collect_sources(prompt, cwd, roots, snapshot_limits(environ))
     return AuditInput(
