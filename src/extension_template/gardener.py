@@ -26,7 +26,12 @@ from .snapshot import SnapshotLimits, collect_sources
 MAX_PROMPT_CHARS = 64_000
 # Failures that say this device cannot reach or use its Orket host, so every
 # repository in a gardener overnight batch would fail identically.
-DEVICE_ERRORS = frozenset({"E_HOST_UNREACHABLE", "E_HOST_AUTH", "E_HOST_KEY_REQUIRED", "E_CONFIG_URL"})
+# Failures that will repeat for every repository in a gardener batch, so the
+# envelope says `blocked` and gardener stops the batch instead of failing each
+# repo the same way. A server error or a timeout means the host or its model is
+# failing or too slow, not that something about this repository is wrong.
+DEVICE_ERRORS = frozenset({"E_HOST_UNREACHABLE", "E_HOST_AUTH", "E_HOST_KEY_REQUIRED", "E_CONFIG_URL",
+                           "E_HOST_SERVER", "E_HOST_TIMEOUT"})
 
 
 def envelope(result: str, *, is_error: bool, session_id: str | None = None, blocked: bool = False) -> dict:

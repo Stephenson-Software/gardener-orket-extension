@@ -10,15 +10,17 @@ It needs no change to Orket.
 
 ## Which path to use
 
-Orket 0.8.1 ships its own governed Gardener harness,
+Orket 0.8.1+ ships its own governed Gardener harness,
 [`examples/gardener_harness/`](https://github.com/McElyea/Orket/tree/main/examples/gardener_harness).
 It runs each dispatch as a governed agent run:
 - snapshots come from committed Git objects, from clean repositories only;
 - the host's `structured_report.v1` verifier checks the report;
 - final truth is recorded, and runs can be inspected and replayed.
 
-Use it when you want that evidence and can serve a model through llama.cpp,
-or through Ollama with a large enough context.
+Use it when you want that evidence and can serve a model through llama.cpp
+or Ollama. Since Orket 0.8.2 it sets the model's context itself and its
+limits are configurable; in testing, `qwen2.5:7b` delivered a useful report
+through it.
 
 This extension is the lighter alternative:
 - one call to a running Orket host's generic runtime API;
@@ -116,9 +118,14 @@ Optional settings, all read from the environment:
 | `GARDENER_ORKET_DOCS` | `README.md,CLAUDE.md,AGENTS.md,CONTRIBUTING.md,SECURITY.md` | Repository docs to include |
 | `EXTENSION_TIMEOUT_SECONDS` | `GARDENER_HARNESS_TIMEOUT` | Host request timeout |
 
-An unreachable host or rejected or missing credentials is reported with
-`"blocked": true`, so a gardener overnight batch stops instead of failing
-every repository.
+These are reported with `"blocked": true`, so a gardener overnight batch
+stops instead of failing every repository the same way:
+- an unreachable host, or rejected or missing credentials;
+- a host server error (HTTP 5xx), which is how Orket 0.8.2 reports a model
+  timeout on this API (McElyea/Orket#6);
+- a request timeout.
+
+Any other HTTP error fails only the current repository.
 
 ## Other commands
 
@@ -142,6 +149,11 @@ or a model. Live verification, including runs that refused or timed out with a
 
 - **Snapshot only.** The model sees a bounded snapshot, not the repository,
   and can't check what it wasn't given.
+- **Context is the server's.** The generic runtime API this extension uses
+  does not set the model's context, even on Orket 0.8.2 (McElyea/Orket#6).
+  A prompt longer than the server's context (Ollama's default is 4,096
+  tokens) is dropped, not refused. Keep `GARDENER_ORKET_MAX_TOTAL_BYTES`
+  well under it, or raise the server's `OLLAMA_CONTEXT_LENGTH`.
 - **Small models.** With a small local model, keep the snapshot small. The
   observed run used `GARDENER_ORKET_MAX_TOTAL_BYTES=8000` with `llama3.2:3b`.
   Expect a checklist that is often wrong.

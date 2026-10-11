@@ -52,3 +52,27 @@ on this machine:
 |---|---|
 | Operator's real conventions repo (~92 KB of docs) | Refused before the model ran: "selected snapshot content exceeds the byte budget" (64 KiB). This is its documented limit |
 | Minimal conventions repo | Refused by its `structured_report.v1` verifier. Each call was charged exactly 4,096 input tokens: Ollama's default context truncated the prompt, and the model echoed the verifier configuration instead of a report. Its default provider is llama.cpp, which was not available here |
+
+## Orket 0.8.2 recheck (2026-10-11)
+
+Run through gardener's integration suite
+([INTEGRATION_TESTS.md](https://github.com/Stephenson-Software/gardener/blob/main/docs/INTEGRATION_TESTS.md)),
+with the host restarted on Orket `v0.8.2` (`555685f9`). Same machine,
+CPU-only Ollama, server context 16,384.
+
+| Run | Outcome |
+|---|---|
+| Command tier, bundled fixture conventions, `llama3.2:3b` | **Delivered**, and `--implement` refused by the extension. Both tests passed in 90 s |
+| Real conventions, `llama3.2:3b`, 8 KB snapshot | Refused by the citation check: `E_REPORT_UNSOURCED` (178 s) |
+| Real conventions, `qwen2.5:7b`, 8 KB snapshot | The host's per-call model timeout (about 300 s) came back as a bare HTTP 500 (303 s), with no retry |
+
+Every run left the target clone clean, and its GitHub `pushedAt` stayed
+`2026-09-04T02:27:40Z`.
+
+A probe of the host's `llm/generate` API found that a message over the
+server's context is dropped: an 83 KB message reached the model as 19 input
+tokens, and the host returned `ok: true`. This was filed as McElyea/Orket#6.
+This extension's default snapshot budget stays far below that limit.
+
+Since this recheck, a host server error or timeout is reported as
+`"blocked": true`, so a gardener batch stops on it.

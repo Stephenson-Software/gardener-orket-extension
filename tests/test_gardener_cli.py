@@ -23,12 +23,16 @@ SRC = Path(__file__).resolve().parents[1] / "src"
 
 @pytest.fixture
 def host():
-    state = {"reply": "No build steps are documented [src01].", "requests": []}
+    state = {"reply": "No build steps are documented [src01].", "requests": [], "status": 200}
 
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
             payload = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             state["requests"].append((self.path, self.headers.get("X-API-Key"), payload))
+            if state["status"] != 200:
+                self.send_response(state["status"])
+                self.end_headers()
+                return
             body = json.dumps({"ok": True, "text": state["reply"], "model": "simulated-model",
                                "latency_ms": None}).encode()
             self.send_response(200)
@@ -121,6 +125,18 @@ def test_an_unreachable_host_is_reported_as_blocked(tmp_path):
     exit_code, out = _run(_clone(tmp_path), port)
     assert exit_code == 1 and out["is_error"] is True and out["blocked"] is True
     assert "E_HOST_UNREACHABLE" in out["result"]
+
+
+@pytest.mark.parametrize("status,code,blocked", [(500, "E_HOST_SERVER", True), (404, "E_HOST_HTTP", False)])
+def test_a_host_server_error_is_blocked_but_a_client_error_is_not(host, tmp_path, status, code, blocked):
+    """Orket 0.8.2 returns a bare 500 when the host's model call times out
+    (McElyea/Orket#6). That will repeat for every repository, so it must stop
+    a gardener batch; a 4xx is about this request and must not."""
+    port, state = host
+    state["status"] = status
+    exit_code, out = _run(_clone(tmp_path), port)
+    assert exit_code == 1 and out["is_error"] is True and out["blocked"] is blocked
+    assert code in out["result"]
 
 
 def test_a_target_clones_env_file_is_never_read(host, tmp_path):

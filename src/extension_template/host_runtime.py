@@ -44,6 +44,11 @@ class HostRuntimeClient:
             raise ExtensionError("E_HOST_UNREACHABLE", "Could not reach the Orket host.") from exc
         if response.status_code in {401, 403}:
             raise ExtensionError("E_HOST_AUTH", "Orket rejected the configured host credentials.", status=503)
+        if 500 <= response.status_code < 600:
+            # Orket 0.8.2 surfaces a model timeout on this API as a bare 500
+            # (McElyea/Orket#6), so a server error is kept distinct: it is a
+            # host-wide condition, not something about this request.
+            raise ExtensionError("E_HOST_SERVER", f"Orket returned HTTP {response.status_code}.")
         if not 200 <= response.status_code < 300:
             raise ExtensionError("E_HOST_HTTP", f"Orket returned HTTP {response.status_code}.")
         try:
