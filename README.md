@@ -170,14 +170,14 @@ or a model. Live verification, including runs that refused or timed out with a
   `orket/runtime/config/local_prompt_profiles.json` whose profile for your
   model has a larger `context_budget_tokens` (32,768 worked in testing).
   Since Orket 0.8.6 the refusal names that setting.
+  - **Before 0.8.3:** the API did not set the context at all, so a prompt
+    longer than the server's context was silently dropped
+    (McElyea/Orket#6).
 - **The host's profile also caps the output.** A request above the
   profile's output ceiling is refused, not lowered. The ceiling depends on
   the model's profile: 768 tokens for Ollama's qwen profile, 1,536 for its
   llama profile. The default request, 768 tokens, fits every packaged
   profile.
-  - **Before 0.8.3:** the API did not set the context at all, so a prompt
-    longer than the server's context was silently dropped
-    (McElyea/Orket#6).
 - **Unsupported content is refused.** Orket's typed refusals reach gardener
   with their code. A host timeout or an unavailable model (HTTP 504/503 on
   0.8.4) is reported as `blocked`.
