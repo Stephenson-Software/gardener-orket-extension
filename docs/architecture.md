@@ -48,7 +48,9 @@ credentials at the configured host. Use HTTPS for a remote host. No operation re
 automatically; a timeout can mean an operation ran but its response was lost.
 
 HTTP errors, connection errors, invalid JSON and unsuccessful envelopes produce stable
-`ExtensionError` codes. Raw upstream error bodies are never returned. CLI failures exit
+`ExtensionError` codes. Raw upstream error bodies are never returned. When Orket answers with
+its typed `detail: {code, message}` shape, the error message carries that code, and the message
+too when it is plain names, numbers and punctuation (`host_runtime._http_failure`). CLI failures exit
 nonzero; the HTTP adapter maps these errors to non-2xx responses. Product generation rejects
 empty output. The adapter relays host model selection; it does not implement fallback itself.
 

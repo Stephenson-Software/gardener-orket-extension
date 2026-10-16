@@ -31,6 +31,9 @@ Every run left the clone clean, and GitHub `pushedAt` stayed
 The delivered run's code is identical to `8b50240` in `src/`. Only tests and
 docs changed afterwards.
 
+Note (2026-10-16): that held when it was written. `src/` has changed since,
+and the rechecks below ran later code.
+
 ## Reading the results
 
 - **The plumbing works.** The path gardener → this extension → Orket runtime
