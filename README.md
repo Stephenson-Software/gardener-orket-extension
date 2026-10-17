@@ -124,8 +124,11 @@ stops instead of failing every repository the same way:
 - an invalid setting: `EXTENSION_HOST_BASE_URL` (`E_CONFIG_URL`),
   `EXTENSION_ID` (`E_CONFIG_ID`), `EXTENSION_TIMEOUT_SECONDS` or
   `GARDENER_HARNESS_TIMEOUT` (`E_CONFIG_TIMEOUT`), a `GARDENER_ORKET_MAX_*`
-  or `GARDENER_ORKET_REPORT_WORDS` value that is not a positive whole number
-  (`E_CONFIG_LIMIT`), or a `GARDENER_HARNESS_SPEC` that is not JSON
+  or `GARDENER_ORKET_REPORT_WORDS` value that is not a positive whole number,
+  a `GARDENER_ORKET_MAX_TOKENS` above 8192, a `GARDENER_ORKET_REPORT_WORDS`
+  outside 20–5000, or a `GARDENER_ORKET_PROVIDER` or `GARDENER_HARNESS_MODEL`
+  longer than 64 or 128 characters (`E_CONFIG_LIMIT`), or a
+  `GARDENER_HARNESS_SPEC` that is not JSON
   (`E_CONFIG_SPEC`). Settings come from the environment, which is the same
   for every repository;
 - a host server error (HTTP 5xx), which is how Orket 0.8.2 reports a model

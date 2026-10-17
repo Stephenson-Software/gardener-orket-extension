@@ -153,6 +153,10 @@ def test_a_host_server_error_is_blocked_but_a_client_error_is_not(host, tmp_path
     ({"GARDENER_HARNESS_TIMEOUT": "soon"}, "E_CONFIG_TIMEOUT"),
     ({"GARDENER_ORKET_MAX_TOTAL_BYTES": "lots"}, "E_CONFIG_LIMIT"),
     ({"GARDENER_ORKET_MAX_FILES": "0"}, "E_CONFIG_LIMIT"),
+    ({"GARDENER_ORKET_MAX_TOKENS": "9000"}, "E_CONFIG_LIMIT"),
+    ({"GARDENER_ORKET_REPORT_WORDS": "10"}, "E_CONFIG_LIMIT"),
+    ({"GARDENER_ORKET_PROVIDER": "p" * 65}, "E_CONFIG_LIMIT"),
+    ({"GARDENER_HARNESS_MODEL": "m" * 129}, "E_CONFIG_LIMIT"),
     ({"GARDENER_HARNESS_SPEC": "not json"}, "E_CONFIG_SPEC"),
 ])
 def test_a_configuration_error_is_blocked_before_the_host_is_called(host, tmp_path, extra, code):
@@ -163,6 +167,16 @@ def test_a_configuration_error_is_blocked_before_the_host_is_called(host, tmp_pa
     exit_code, out = _run(_clone(tmp_path), port, extra=extra)
     assert exit_code == 1 and out["is_error"] is True and out["blocked"] is True, out
     assert f"{code}:" in out["result"], out["result"]
+    assert state["requests"] == []
+
+
+def test_an_empty_prompt_fails_only_this_dispatch(host, tmp_path):
+    """Unlike an out-of-range setting, the prompt is per dispatch, so it must
+    not stop a gardener batch."""
+    port, state = host
+    exit_code, out = _run(_clone(tmp_path), port, prompt="")
+    assert exit_code == 2 and out["is_error"] is True and out["blocked"] is False, out
+    assert "empty prompt" in out["result"]
     assert state["requests"] == []
 
 
