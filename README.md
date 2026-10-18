@@ -57,7 +57,8 @@ file or shell tools, only text.
    - files the prompt names by absolute path, only if they're under the clone
      or the spec's `add_dirs` (a relative path in the prompt is not picked up);
    - the repository's own docs;
-   - its `git ls-files` listing.
+   - its `git ls-files` listing, always included and capped by entry count
+     (`GARDENER_ORKET_MAX_FILES`), not by the byte budget.
 
    Each source gets a short reference (`src01`, …, `listing`).
 3. One `llm/generate` call goes to the host. The prompt asks for Markdown that
@@ -144,8 +145,16 @@ repository.
 
 ## Other commands
 
-The template's `status`, `models`, `generate` and optional `serve` commands
-are unchanged; see [docs/architecture.md](docs/architecture.md). The
+The template's commands are unchanged; `orket-extension --help` lists them:
+- `status` and `models [--provider]` query the host's runtime API;
+- `generate <message>` runs the example generation (`-` reads up to 16,000
+  characters from stdin);
+- `serve [--port]` starts the optional HTTP adapter on `127.0.0.1`, port 3001
+  by default, and needs the `[gateway]` extra.
+
+They read `.env` and `.env.local` from `--config-dir` or the current
+directory. The host contract they use is in
+[docs/architecture.md](docs/architecture.md). The
 template's SDK workload example (`extension.yaml`, `workload.py`) is also
 unchanged. gardener uses the headless path, not host dispatch.
 
