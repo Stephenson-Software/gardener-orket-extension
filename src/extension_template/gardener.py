@@ -38,6 +38,9 @@ DEFAULT_MAX_TOKENS = 768
 DEVICE_ERRORS = frozenset({"E_HOST_UNREACHABLE", "E_HOST_AUTH", "E_HOST_KEY_REQUIRED", "E_HOST_SERVER",
                            "E_HOST_TIMEOUT", "E_HOST_OUTPUT_LIMIT", "E_CONFIG_URL", "E_CONFIG_ID",
                            "E_CONFIG_TIMEOUT", "E_CONFIG_LIMIT", "E_CONFIG_SPEC"})
+# The environment setting behind each bounded `AuditInput` field.
+ENV_FIELDS = {"provider": "GARDENER_ORKET_PROVIDER", "model": "GARDENER_HARNESS_MODEL",
+              "max_tokens": "GARDENER_ORKET_MAX_TOKENS", "report_words": "GARDENER_ORKET_REPORT_WORDS"}
 
 
 def envelope(result: str, *, is_error: bool, session_id: str | None = None, blocked: bool = False) -> dict:
@@ -73,14 +76,22 @@ def audit_request(prompt: str, cwd: Path, environ: Mapping[str, str]) -> AuditIn
         raise ExtensionError("E_CONFIG_SPEC", "GARDENER_HARNESS_SPEC is not JSON.", status=503) from exc
     roots = [Path(item) for item in spec.get("add_dirs", [])] if isinstance(spec, dict) else []
     sources = collect_sources(prompt, cwd, roots, snapshot_limits(environ))
-    return AuditInput(
-        task=prompt,
-        sources=[AuditSource(ref=s.ref, path=s.path, text=s.text) for s in sources],
-        provider=str(environ.get("GARDENER_ORKET_PROVIDER") or "").strip(),
-        model=str(environ.get("GARDENER_HARNESS_MODEL") or "").strip(),
-        max_tokens=_int(environ, "GARDENER_ORKET_MAX_TOKENS", DEFAULT_MAX_TOKENS),
-        report_words=_int(environ, "GARDENER_ORKET_REPORT_WORDS", 250),
-    )
+    try:
+        return AuditInput(
+            task=prompt,
+            sources=[AuditSource(ref=s.ref, path=s.path, text=s.text) for s in sources],
+            provider=str(environ.get("GARDENER_ORKET_PROVIDER") or "").strip(),
+            model=str(environ.get("GARDENER_HARNESS_MODEL") or "").strip(),
+            max_tokens=_int(environ, "GARDENER_ORKET_MAX_TOKENS", DEFAULT_MAX_TOKENS),
+            report_words=_int(environ, "GARDENER_ORKET_REPORT_WORDS", 250),
+        )
+    except ValidationError as exc:
+        # These fields come from the environment, so an out-of-range value
+        # repeats for every repository; an empty prompt stays per-dispatch.
+        names = [ENV_FIELDS[e["loc"][0]] for e in exc.errors() if e["loc"] and e["loc"][0] in ENV_FIELDS]
+        if not names:
+            raise
+        raise ExtensionError("E_CONFIG_LIMIT", f"{names[0]} is out of range.", status=503) from exc
 
 
 def render(result: dict[str, Any], request: AuditInput, settings: Settings) -> str:
@@ -106,7 +117,7 @@ async def dispatch(
         async with HostRuntimeClient(settings) as host:
             result = await ExtensionService(host).audit(request)
     except ValidationError:
-        return envelope("invalid audit input (empty prompt or out-of-range setting)", is_error=True), 2
+        return envelope("invalid audit input (empty prompt)", is_error=True), 2
     except ExtensionError as exc:
         text = f"Orket audit failed: {exc.code}: {exc.message}"
         return envelope(text, is_error=True, session_id=session, blocked=exc.code in DEVICE_ERRORS), 1
