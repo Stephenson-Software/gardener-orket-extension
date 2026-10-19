@@ -55,6 +55,23 @@ collapsed and it is cut at 400 characters (`host_runtime._http_failure`). CLI fa
 nonzero; the HTTP adapter maps these errors to non-2xx responses. Product generation rejects
 empty output. The adapter relays host model selection; it does not implement fallback itself.
 
+## Optional HTTP adapter
+
+`orket-extension serve` (`gateway.py`, `[gateway]` extra) listens on `127.0.0.1` only:
+
+| Method | Path | Calls |
+| --- | --- | --- |
+| GET | `/api/status` | `HostRuntimeClient.status` |
+| GET | `/api/models?provider=` | `HostRuntimeClient.models` |
+| POST | `/api/generate` | `ExtensionService.generate`, with a `GenerateInput` JSON body |
+
+Before routing or JSON decoding, a request must come from a loopback address and carry
+`Authorization: Bearer <EXTENSION_GATEWAY_TOKEN>`, or it gets 401 `E_GATEWAY_AUTH`; forwarded
+headers are not trusted. A body over 65,536 bytes gets 413 `E_BODY_TOO_LARGE`, and an invalid
+payload gets 422 `E_INPUT`. The adapter refuses to start (`E_GATEWAY_TOKEN`) unless the token
+has at least 32 characters and differs from the host key. It does not serve the `gardener`
+command; gardener runs the CLI.
+
 ## Python automation
 
 ```python
