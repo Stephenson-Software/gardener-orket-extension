@@ -74,6 +74,11 @@ file or shell tools, only text.
 5. The report is returned with a footer naming the host, extension ID, model
    and cited sources.
 
+The command prints gardener's JSON envelope on stdout. It exits 0 with a
+report, and 2 when the dispatch itself is refused: a mode other than report,
+an empty prompt, or a prompt over 64,000 characters. Any other failure,
+including every `"blocked"` one below, exits 1.
+
 The `gardener` command reads its settings from the **environment only**,
 unless `--config-dir` is given. gardener runs it inside the target clone, so a
 repository's own `.env` must never be able to choose the host, the
@@ -150,10 +155,11 @@ The template's commands are unchanged; `orket-extension --help` lists them:
 - `generate <message>` runs the example generation (`-` reads up to 16,000
   characters from stdin);
 - `serve [--port]` starts the optional HTTP adapter on `127.0.0.1`, port 3001
-  by default, and needs the `[gateway]` extra.
+  by default. It needs the `[gateway]` extra and an `EXTENSION_GATEWAY_TOKEN`
+  of at least 32 characters that differs from the host key.
 
 They read `.env` and `.env.local` from `--config-dir` or the current
-directory. The host contract they use is in
+directory. The host contract they use, and the HTTP adapter's routes, are in
 [docs/architecture.md](docs/architecture.md). The
 template's SDK workload example (`extension.yaml`, `workload.py`) is also
 unchanged. gardener uses the headless path, not host dispatch.
