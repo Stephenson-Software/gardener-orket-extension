@@ -134,8 +134,8 @@ stops instead of failing every repository the same way:
   a `GARDENER_ORKET_MAX_TOKENS` above 8192, a `GARDENER_ORKET_REPORT_WORDS`
   outside 20–5000, or a `GARDENER_ORKET_PROVIDER` or `GARDENER_HARNESS_MODEL`
   longer than 64 or 128 characters (`E_CONFIG_LIMIT`), or a
-  `GARDENER_HARNESS_SPEC` that is not JSON
-  (`E_CONFIG_SPEC`). Settings come from the environment, which is the same
+  `GARDENER_HARNESS_SPEC` that is not JSON or whose `add_dirs` is not a list
+  of paths (`E_CONFIG_SPEC`). Settings come from the environment, which is the same
   for every repository;
 - a host server error (HTTP 5xx), which is how Orket 0.8.2 reports a model
   timeout on this API (McElyea/Orket#6);

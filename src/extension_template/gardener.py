@@ -74,7 +74,12 @@ def audit_request(prompt: str, cwd: Path, environ: Mapping[str, str]) -> AuditIn
         spec = json.loads(str(environ.get("GARDENER_HARNESS_SPEC") or "{}"))
     except json.JSONDecodeError as exc:
         raise ExtensionError("E_CONFIG_SPEC", "GARDENER_HARNESS_SPEC is not JSON.", status=503) from exc
-    roots = [Path(item) for item in spec.get("add_dirs", [])] if isinstance(spec, dict) else []
+    add_dirs = spec.get("add_dirs", []) if isinstance(spec, dict) else []
+    # A string would iterate to `/` and open every absolute path to the snapshot.
+    if not isinstance(add_dirs, list) or not all(isinstance(item, str) for item in add_dirs):
+        raise ExtensionError("E_CONFIG_SPEC", "GARDENER_HARNESS_SPEC add_dirs must be a list of paths.",
+                             status=503)
+    roots = [Path(item) for item in add_dirs]
     sources = collect_sources(prompt, cwd, roots, snapshot_limits(environ))
     try:
         return AuditInput(
