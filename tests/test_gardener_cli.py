@@ -158,6 +158,9 @@ def test_a_host_server_error_is_blocked_but_a_client_error_is_not(host, tmp_path
     ({"GARDENER_ORKET_PROVIDER": "p" * 65}, "E_CONFIG_LIMIT"),
     ({"GARDENER_HARNESS_MODEL": "m" * 129}, "E_CONFIG_LIMIT"),
     ({"GARDENER_HARNESS_SPEC": "not json"}, "E_CONFIG_SPEC"),
+    ({"GARDENER_HARNESS_SPEC": json.dumps({"add_dirs": "/srv/conventions"})}, "E_CONFIG_SPEC"),
+    ({"GARDENER_HARNESS_SPEC": json.dumps({"add_dirs": 5})}, "E_CONFIG_SPEC"),
+    ({"GARDENER_HARNESS_SPEC": json.dumps({"add_dirs": [5]})}, "E_CONFIG_SPEC"),
 ])
 def test_a_configuration_error_is_blocked_before_the_host_is_called(host, tmp_path, extra, code):
     """Settings come from the environment, which is the same for every
