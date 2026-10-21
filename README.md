@@ -138,7 +138,7 @@ stops instead of failing every repository the same way:
   of paths (`E_CONFIG_SPEC`). Settings come from the environment, which is the same
   for every repository;
 - a host server error (HTTP 5xx), which is how Orket 0.8.2 reports a model
-  timeout on this API (McElyea/Orket#6);
+  timeout on this API (see [docs/verification.md](docs/verification.md));
 - a request timeout;
 - a request above the host profile's output ceiling (Orket answers
   `E_MODEL_OUTPUT_LIMIT`, shown as `E_HOST_OUTPUT_LIMIT`). Every repository
