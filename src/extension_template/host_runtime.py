@@ -47,9 +47,9 @@ class HostRuntimeClient:
             raise ExtensionError("E_HOST_AUTH", "Orket rejected the configured host credentials.", status=503)
         if 500 <= response.status_code < 600:
             # A host-wide condition, not something about this request: Orket
-            # 0.8.2 surfaced a model timeout as a bare 500 (McElyea/Orket#6),
-            # and 0.8.4 returns a typed 504/503 for a timeout or an
-            # unavailable model.
+            # 0.8.2 surfaced a model timeout as a bare 500 (see the Orket
+            # 0.8.2 recheck in docs/verification.md), and 0.8.4 returns a
+            # typed 504/503 for a timeout or an unavailable model.
             raise ExtensionError("E_HOST_SERVER", _http_failure(response))
         if not 200 <= response.status_code < 300:
             # Orket (0.8.2+) refuses a request above the host profile's
