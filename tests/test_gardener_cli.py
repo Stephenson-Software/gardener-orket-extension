@@ -136,8 +136,9 @@ def test_an_unreachable_host_is_reported_as_blocked(tmp_path):
 @pytest.mark.parametrize("status,code,blocked", [(500, "E_HOST_SERVER", True), (404, "E_HOST_HTTP", False)])
 def test_a_host_server_error_is_blocked_but_a_client_error_is_not(host, tmp_path, status, code, blocked):
     """Orket 0.8.2 returns a bare 500 when the host's model call times out
-    (McElyea/Orket#6). That will repeat for every repository, so it must stop
-    a gardener batch; a 4xx is about this request and must not."""
+    (see the Orket 0.8.2 recheck in docs/verification.md). That will repeat
+    for every repository, so it must stop a gardener batch; a 4xx is about
+    this request and must not."""
     port, state = host
     state["status"] = status
     exit_code, out = _run(_clone(tmp_path), port)
