@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "gardener-orket-extension"
 version = "0.1.0"
-description = "Headless Orket extension starter with a host runtime adapter."
+description = "Run gardener's report-only repository audits through an Orket host's generic runtime API."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
