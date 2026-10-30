@@ -28,6 +28,11 @@ def test_citations_must_exist_and_come_from_the_snapshot():
     assert unknown.value.code == "E_REPORT_UNKNOWN_SOURCE"
 
 
+def test_a_directly_built_audit_input_requests_the_packaged_profile_output_ceiling():
+    # 1024, the old default, is refused by Ollama's qwen profile (768).
+    assert _request("src01").max_tokens == 768
+
+
 def test_audit_message_heads_each_source_with_its_reference():
     message = audit_message(_request("src01", "listing"))
     assert message.startswith("## Task\n\nAudit.")
