@@ -16,7 +16,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from .domain import AuditInput, AuditSource
+from .domain import DEFAULT_AUDIT_MAX_TOKENS, AuditInput, AuditSource
 from .errors import ExtensionError
 from .host_runtime import HostRuntimeClient
 from .service import ExtensionService
@@ -24,11 +24,6 @@ from .settings import Settings
 from .snapshot import SnapshotLimits, collect_sources
 
 MAX_PROMPT_CHARS = 64_000
-# The lowest output ceiling among Orket's packaged profiles for this API (the
-# `concise_text` bundle). Orket refuses a larger request rather than lowering
-# it, so 1024, the old default, failed on most packaged profiles, Ollama's
-# qwen profile among them (768); its llama profile allows 1536.
-DEFAULT_MAX_TOKENS = 768
 # Failures that will repeat for every repository in a gardener batch, so the
 # envelope says `blocked` and gardener stops the batch instead of failing each
 # repo the same way. A server error or a timeout means the host or its model is
@@ -87,7 +82,7 @@ def audit_request(prompt: str, cwd: Path, environ: Mapping[str, str]) -> AuditIn
             sources=[AuditSource(ref=s.ref, path=s.path, text=s.text) for s in sources],
             provider=str(environ.get("GARDENER_ORKET_PROVIDER") or "").strip(),
             model=str(environ.get("GARDENER_HARNESS_MODEL") or "").strip(),
-            max_tokens=_int(environ, "GARDENER_ORKET_MAX_TOKENS", DEFAULT_MAX_TOKENS),
+            max_tokens=_int(environ, "GARDENER_ORKET_MAX_TOKENS", DEFAULT_AUDIT_MAX_TOKENS),
             report_words=_int(environ, "GARDENER_ORKET_REPORT_WORDS", 250),
         )
     except ValidationError as exc:

@@ -18,6 +18,11 @@ AUDIT_SYSTEM_PROMPT = (
 )
 
 _CITATION = re.compile(r"\[(src\d{2}|listing)\]")
+# The lowest output ceiling among Orket's packaged profiles for this API (the
+# `concise_text` bundle). Orket refuses a larger request rather than lowering
+# it, so 1024, the old default, failed on most packaged profiles, Ollama's
+# qwen profile among them (768); its llama profile allows 1536.
+DEFAULT_AUDIT_MAX_TOKENS = 768
 
 
 class GenerateInput(BaseModel):
@@ -45,7 +50,7 @@ class AuditInput(BaseModel):
     sources: list[AuditSource] = Field(min_length=1)
     provider: str = Field(default="", max_length=64)
     model: str = Field(default="", max_length=128)
-    max_tokens: int = Field(default=1024, ge=1, le=8192)
+    max_tokens: int = Field(default=DEFAULT_AUDIT_MAX_TOKENS, ge=1, le=8192)
     report_words: int = Field(default=250, ge=20, le=5000)
 
 
