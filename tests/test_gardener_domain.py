@@ -6,7 +6,8 @@ import pytest
 
 from extension_template.domain import AuditInput, AuditSource, audit_message, cited_sources
 from extension_template.errors import ExtensionError
-from extension_template.gardener import envelope, snapshot_limits
+from extension_template.gardener import envelope, render, snapshot_limits
+from extension_template.settings import Settings
 from extension_template.snapshot import SnapshotLimits, collect_sources
 
 pytestmark = pytest.mark.unit
@@ -37,6 +38,20 @@ def test_audit_message_heads_each_source_with_its_reference():
     message = audit_message(_request("src01", "listing"))
     assert message.startswith("## Task\n\nAudit.")
     assert "## Source [src01] src01.md\n\nt" in message and "## Source [listing] listing.md" in message
+
+
+def test_the_footer_names_the_model_the_host_reported():
+    result = {"report": "A gap [src01].", "source_refs": ["src01"], "model": "simulated-model"}
+    footer = render(result, _request("src01"), Settings())
+    assert "model `simulated-model`" in footer and "not reported" not in footer
+
+
+@pytest.mark.parametrize("reported", [{}, {"model": None}, {"model": ""}])
+def test_the_footer_states_an_unknown_model_instead_of_inventing_a_name(reported):
+    result = {"report": "A gap [src01].", "source_refs": ["src01"], **reported}
+    footer = render(result, _request("src01"), Settings())
+    assert "model not reported by the host" in footer
+    assert "None" not in footer and "model ``" not in footer
 
 
 def _repo(tmp_path):

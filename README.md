@@ -72,7 +72,8 @@ file or shell tools, only text.
    Neither is passed on to gardener. Citations are checked; correctness is
    not. A report is model-assisted advice.
 5. The report is returned with a footer naming the host, extension ID, model
-   and cited sources.
+   and cited sources. A model the host didn't report is stated as such, never
+   guessed.
 
 The command prints gardener's JSON envelope on stdout. It exits 0 with a
 report, and 2 when the dispatch itself is refused: a mode other than report,
