@@ -97,8 +97,10 @@ def audit_request(prompt: str, cwd: Path, environ: Mapping[str, str]) -> AuditIn
 def render(result: dict[str, Any], request: AuditInput, settings: Settings) -> str:
     paths = {source.ref: source.path for source in request.sources}
     cited = ", ".join(f"{ref} ({paths[ref]})" for ref in result["source_refs"])
+    model = result.get("model")
+    model_note = f"model `{model}`" if model else "model not reported by the host"
     return (f"{result['report'].rstrip()}\n\n---\nGenerated through the Orket host at "
-            f"{settings.host_base_url} (extension `{settings.extension_id}`, model `{result.get('model')}`); "
+            f"{settings.host_base_url} (extension `{settings.extension_id}`, {model_note}); "
             f"every citation was checked against the supplied snapshot. Sources cited: {cited}.")
 
 
