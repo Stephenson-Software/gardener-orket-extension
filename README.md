@@ -80,10 +80,15 @@ report, and 2 when the dispatch itself is refused: a mode other than report,
 an empty prompt, or a prompt over 64,000 characters. Any other failure,
 including every `"blocked"` one below, exits 1.
 
-The `gardener` command reads its settings from the **environment only**,
-unless `--config-dir` is given. gardener runs it inside the target clone, so a
-repository's own `.env` must never be able to choose the host, the
-credentials or the extension ID.
+The `gardener` command reads its settings from the **environment only**.
+gardener runs it inside the target clone, so a repository's own `.env` must
+never be able to choose the host, the credentials or the extension ID.
+
+`--config-dir` is the one exception, and a narrow one. It adds the `EXTENSION_*`
+and `ORKET_API_KEY` values from that directory's `.env` and `.env.local`, and
+the environment still wins over them. `GARDENER_ORKET_*` values in those files
+are ignored. A relative `--config-dir` resolves inside the target clone, so
+give an absolute path outside it.
 
 ## Set up
 
@@ -112,7 +117,8 @@ EXTENSION_HOST_API_KEY=<the host's key>        # or ORKET_API_KEY
 EXTENSION_HOST_BASE_URL=http://127.0.0.1:8082  # default
 ```
 
-Optional settings, all read from the environment:
+Optional settings, all read from the environment. Of these, only
+`EXTENSION_TIMEOUT_SECONDS` can also come from a `--config-dir` file:
 
 | Setting | Default | Meaning |
 |---|---|---|
@@ -123,7 +129,7 @@ Optional settings, all read from the environment:
 | `GARDENER_ORKET_MAX_FILE_BYTES` | `6000` | Per-file cap |
 | `GARDENER_ORKET_MAX_FILES` | `400` | Listing entries |
 | `GARDENER_ORKET_DOCS` | `README.md,CLAUDE.md,AGENTS.md,CONTRIBUTING.md,SECURITY.md` | Repository docs to include |
-| `EXTENSION_TIMEOUT_SECONDS` | `GARDENER_HARNESS_TIMEOUT`, else `300` | Host request timeout, in seconds |
+| `EXTENSION_TIMEOUT_SECONDS` | `GARDENER_HARNESS_TIMEOUT`, else `300` | Host request timeout, in seconds. `GARDENER_HARNESS_TIMEOUT` also takes precedence over a value in a `--config-dir` file |
 
 These are reported with `"blocked": true`, so a gardener overnight batch
 stops instead of failing every repository the same way:
