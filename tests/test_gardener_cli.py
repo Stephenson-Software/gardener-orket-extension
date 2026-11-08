@@ -174,11 +174,12 @@ def test_a_configuration_error_is_blocked_before_the_host_is_called(host, tmp_pa
     assert state["requests"] == []
 
 
-def test_an_empty_prompt_fails_only_this_dispatch(host, tmp_path):
+@pytest.mark.parametrize("prompt", ["", "  \n\t\n"])
+def test_an_empty_prompt_fails_only_this_dispatch(host, tmp_path, prompt):
     """Unlike an out-of-range setting, the prompt is per dispatch, so it must
-    not stop a gardener batch."""
+    not stop a gardener batch. A whitespace-only prompt is empty too (#29)."""
     port, state = host
-    exit_code, out = _run(_clone(tmp_path), port, prompt="")
+    exit_code, out = _run(_clone(tmp_path), port, prompt=prompt)
     assert exit_code == 2 and out["is_error"] is True and out["blocked"] is False, out
     assert "empty prompt" in out["result"]
     assert state["requests"] == []

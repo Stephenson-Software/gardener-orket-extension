@@ -3,6 +3,7 @@
 import subprocess
 
 import pytest
+from pydantic import ValidationError
 
 from extension_template.domain import AuditInput, AuditSource, audit_message, cited_sources
 from extension_template.errors import ExtensionError
@@ -27,6 +28,21 @@ def test_citations_must_exist_and_come_from_the_snapshot():
     with pytest.raises(ExtensionError) as unknown:
         cited_sources("A gap [src01] and an invented one [src09].", request)
     assert unknown.value.code == "E_REPORT_UNKNOWN_SOURCE"
+
+
+def test_a_cited_listing_that_was_not_supplied_is_an_unknown_source():
+    """The gardener command always supplies a listing, but a service caller
+    building AuditInput directly need not (#30)."""
+    with pytest.raises(ExtensionError) as unknown:
+        cited_sources("A gap [src01]. Files [listing].", _request("src01"))
+    assert unknown.value.code == "E_REPORT_UNKNOWN_SOURCE"
+    assert "listing" in unknown.value.message
+
+
+@pytest.mark.parametrize("task", ["", " ", "\n\t\n"])
+def test_a_task_that_is_empty_after_stripping_is_refused(task):
+    with pytest.raises(ValidationError):
+        AuditInput(task=task, sources=[AuditSource(ref="src01", path="a.md", text="t")])
 
 
 def test_a_directly_built_audit_input_requests_the_packaged_profile_output_ceiling():
