@@ -44,7 +44,9 @@ class AuditSource(BaseModel):
 
 
 class AuditInput(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    # Stripping makes a whitespace-only task fail min_length, so it is refused
+    # as an empty prompt instead of reaching the host as an empty request.
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     task: str = Field(min_length=1, max_length=64000)
     sources: list[AuditSource] = Field(min_length=1)
@@ -74,7 +76,7 @@ def cited_sources(report: str, request: AuditInput) -> list[str]:
     """
     supplied = {source.ref for source in request.sources}
     cited = list(dict.fromkeys(_CITATION.findall(report)))
-    unknown = sorted(set(re.findall(r"\[(src\d+)\]", report)) - supplied)
+    unknown = sorted(set(re.findall(r"\[(src\d+|listing)\]", report)) - supplied)
     if unknown:
         raise ExtensionError(
             "E_REPORT_UNKNOWN_SOURCE", f"The report cites sources it was not given: {unknown}."
