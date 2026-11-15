@@ -69,7 +69,7 @@ def _clone(tmp_path):
     return repo
 
 
-def _run(repo, port, *, mode="report", prompt="Audit this repository.", extra=None, drop=()):
+def _run(repo, port, *, mode="report", prompt="Audit this repository.", extra=None, drop=(), args=()):
     env = {k: v for k, v in os.environ.items() if not k.startswith(("EXTENSION_", "ORKET_", "GARDENER_"))}
     env.update({
         "EXTENSION_HOST_API_KEY": "host-secret", "EXTENSION_HOST_BASE_URL": f"http://127.0.0.1:{port}",
@@ -80,7 +80,7 @@ def _run(repo, port, *, mode="report", prompt="Audit this repository.", extra=No
     })
     for name in drop:
         env.pop(name, None)
-    proc = subprocess.run([sys.executable, "-m", "extension_template", "gardener"], cwd=repo, env=env,
+    proc = subprocess.run([sys.executable, "-m", "extension_template", *args, "gardener"], cwd=repo, env=env,
                           input=prompt, text=True, capture_output=True, timeout=30)
     return proc.returncode, json.loads(proc.stdout)
 
@@ -222,3 +222,22 @@ def test_a_target_clones_env_file_is_never_read(host, tmp_path):
     exit_code, out = _run(repo, port, drop=("EXTENSION_ID",))
     assert exit_code == 0, out
     assert state["requests"][0][0] == "/v1/extensions/stephenson.gardener-orket/runtime/llm/generate"
+
+
+def test_a_config_dir_supplies_extension_settings_but_not_gardener_orket_ones(host, tmp_path):
+    """--config-dir adds EXTENSION_* values from its .env, but GARDENER_ORKET_*
+    values there are ignored, and GARDENER_HARNESS_TIMEOUT takes precedence over
+    the file's EXTENSION_TIMEOUT_SECONDS (#27). A file timeout of `soon` would
+    otherwise fail with E_CONFIG_TIMEOUT."""
+    port, state = host
+    config = tmp_path / "config"
+    config.mkdir()
+    (config / ".env").write_text(
+        "EXTENSION_ID=config.namespace\nEXTENSION_TIMEOUT_SECONDS=soon\nGARDENER_ORKET_MAX_TOKENS=999\n",
+        encoding="utf-8",
+    )
+    exit_code, out = _run(_clone(tmp_path), port, drop=("EXTENSION_ID",), args=("--config-dir", str(config)))
+    assert exit_code == 0, out
+    (path, _key, payload), = state["requests"]
+    assert path == "/v1/extensions/config.namespace/runtime/llm/generate"
+    assert payload["max_tokens"] == 768

@@ -19,8 +19,9 @@ def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(description="Headless Orket extension. Results are JSON on stdout.")
     root.add_argument(
         "--config-dir", type=Path, default=None,
-        help="Directory containing .env/.env.local (default: current directory; "
-        "the gardener command reads only the environment unless this is given)",
+        help="Directory containing .env/.env.local (default: current directory). The gardener "
+        "command reads only the environment unless this is given, and then takes only "
+        "EXTENSION_* and ORKET_API_KEY from it; GARDENER_ORKET_* values there are ignored",
     )
     commands = root.add_subparsers(dest="command", required=True)
     commands.add_parser("status", help="Inspect host runtime availability")
