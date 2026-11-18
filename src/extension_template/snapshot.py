@@ -13,6 +13,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 _PATH_PATTERN = re.compile(r"(?<![\w.-])(/[^\s`'\"()<>]+)")
+# File references are two digits (``src01``..``src99``); see ``AuditSource.ref``.
+MAX_FILE_SOURCES = 99
 
 
 @dataclass(frozen=True)
@@ -39,7 +41,7 @@ def collect_sources(prompt: str, repo: Path, roots: list[Path], limits: Snapshot
     sources: list[Source] = []
     used = 0
     for path in dict.fromkeys(candidate.resolve() for candidate in candidates):
-        if used >= limits.max_total_bytes or not path.is_file():
+        if len(sources) >= MAX_FILE_SOURCES or used >= limits.max_total_bytes or not _is_file(path):
             continue
         text = _read_head(path, min(limits.max_file_bytes, limits.max_total_bytes - used))
         if text is None:
@@ -49,6 +51,13 @@ def collect_sources(prompt: str, repo: Path, roots: list[Path], limits: Snapshot
         used += len(text.encode("utf-8"))
     sources.append(Source(ref="listing", path="git ls-files", text="\n".join(_tracked_files(repo, limits))))
     return sources
+
+
+def _is_file(path: Path) -> bool:
+    try:
+        return path.is_file()
+    except OSError:
+        return False
 
 
 def _read_head(path: Path, limit: int) -> str | None:

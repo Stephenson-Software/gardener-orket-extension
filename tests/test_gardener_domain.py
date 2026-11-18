@@ -1,6 +1,7 @@
 """Audit rules and the read-only snapshot, without a host or model."""
 
 import subprocess
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -101,6 +102,34 @@ def test_snapshot_respects_byte_budgets(tmp_path):
     (repo / "README.md").write_text("x" * 5000, encoding="utf-8")
     sources = collect_sources("", repo, [], SnapshotLimits(max_total_bytes=1000, max_file_bytes=300))
     assert sources[0].text == "x" * 300 + "\n[truncated]"
+
+
+def test_a_snapshot_stops_at_99_file_sources_so_every_reference_stays_valid(tmp_path):
+    repo = _repo(tmp_path)
+    named = []
+    for index in range(105):
+        path = repo / f"f{index:03d}.txt"
+        path.write_text("", encoding="utf-8")
+        named.append(str(path))
+    sources = collect_sources(" ".join(named), repo, [], SnapshotLimits())
+    assert [s.ref for s in sources] == [f"src{n:02d}" for n in range(1, 100)] + ["listing"]
+    AuditInput(task="Audit.", sources=[AuditSource(ref=s.ref, path=s.path, text=s.text) for s in sources])
+
+
+def test_a_candidate_that_cannot_be_inspected_is_skipped_instead_of_raising(tmp_path, monkeypatch):
+    repo = _repo(tmp_path)
+    blocked = repo / "blocked.txt"
+    blocked.write_text("unreachable\n", encoding="utf-8")
+    real_is_file = Path.is_file
+
+    def is_file(self):
+        if self.name == "blocked.txt":
+            raise PermissionError(13, "Permission denied")
+        return real_is_file(self)
+
+    monkeypatch.setattr(Path, "is_file", is_file)
+    sources = collect_sources(f"Read {blocked}.", repo, [], SnapshotLimits())
+    assert [(s.ref, s.path) for s in sources] == [("src01", "README.md"), ("listing", "git ls-files")]
 
 
 def test_envelope_and_limits_follow_gardeners_contract():

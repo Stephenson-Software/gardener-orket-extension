@@ -60,7 +60,9 @@ file or shell tools, only text.
    - its `git ls-files` listing, always included and capped by entry count
      (`GARDENER_ORKET_MAX_FILES`), not by the byte budget.
 
-   Each source gets a short reference (`src01`, …, `listing`).
+   Each source gets a short reference (`src01`, …, `listing`). At most 99
+   files are included, so references stop at `src99`; a candidate that can't
+   be inspected or read is skipped.
 3. One `llm/generate` call goes to the host. The prompt asks for Markdown that
    cites a bracketed reference after each statement. The host selects the
    provider and calls the model.
