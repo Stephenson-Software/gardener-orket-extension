@@ -37,7 +37,8 @@ def collect_sources(prompt: str, repo: Path, roots: list[Path], limits: Snapshot
     allowed = [repo, *(root.resolve() for root in roots)]
     named = [Path(match.rstrip(".,:;")) for match in _PATH_PATTERN.findall(prompt)]
     candidates = [path for path in named if any(path.resolve().is_relative_to(root) for root in allowed)]
-    candidates += [repo / name for name in limits.docs]
+    # A doc is the clone's own file: a symlink (or name) that resolves outside it is skipped.
+    candidates += [path for name in limits.docs if (path := (repo / name).resolve()).is_relative_to(repo)]
     sources: list[Source] = []
     used = 0
     for path in dict.fromkeys(candidate.resolve() for candidate in candidates):
