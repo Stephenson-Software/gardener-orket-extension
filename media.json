@@ -1,0 +1,83 @@
+{
+  "out": "docs/screenshots",
+  "vars": {
+    "pages": "file://{manifest_dir}/build/transcripts"
+  },
+  "devices": {
+    "term": {
+      "width": 1240,
+      "height": 600,
+      "dpr": 1
+    },
+    "term-tall": {
+      "width": 1240,
+      "height": 1000,
+      "dpr": 1
+    }
+  },
+  "shots": [
+    {
+      "name": "transcripts",
+      "kind": "prep",
+      "argv": [
+        "python",
+        "docs/screenshots/transcripts.py",
+        "build/transcripts"
+      ],
+      "inputs": [
+        "docs/screenshots/transcripts.py",
+        "src/"
+      ],
+      "outputs": [
+        "build/transcripts/report.html",
+        "build/transcripts/refusals.html",
+        "build/transcripts/help.html"
+      ]
+    },
+    {
+      "name": "report",
+      "kind": "still",
+      "device": "term",
+      "depends": [
+        "transcripts"
+      ],
+      "url": "{pages}/report.html",
+      "crop": {
+        "of": ".term",
+        "pad": 12
+      },
+      "caption": "A report dispatch: the cited report gardener receives, with its provenance footer.",
+      "alt": "Terminal: orket-extension gardener exits 0 and the envelope's result is a Markdown report whose every line cites [src01] or [listing], followed by a footer naming the host, extension and model"
+    },
+    {
+      "name": "refusals",
+      "kind": "still",
+      "device": "term-tall",
+      "depends": [
+        "transcripts"
+      ],
+      "url": "{pages}/refusals.html",
+      "crop": {
+        "of": ".term",
+        "pad": 12
+      },
+      "caption": "Three dispatches that return no report: an invented citation, a non-report mode, and an unreachable host (blocked).",
+      "alt": "Terminal: three gardener envelopes, E_REPORT_UNKNOWN_SOURCE with exit 1, 'report mode only' with exit 2, and E_HOST_UNREACHABLE with blocked true and exit 1"
+    },
+    {
+      "name": "help",
+      "kind": "still",
+      "device": "term",
+      "depends": [
+        "transcripts"
+      ],
+      "url": "{pages}/help.html",
+      "crop": {
+        "of": ".term",
+        "pad": 12
+      },
+      "caption": "orket-extension --help: the template's commands plus gardener.",
+      "alt": "Terminal: orket-extension --help listing the status, models, generate, gardener and serve subcommands"
+    }
+  ]
+}
