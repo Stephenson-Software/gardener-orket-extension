@@ -8,6 +8,10 @@ This is a headless Orket extension built from
 [McElyea/Orket-Extension-Template](https://github.com/McElyea/Orket-Extension-Template).
 It needs no change to Orket.
 
+![Terminal: orket-extension gardener returns a Markdown report in which every line cites [src01] or [listing], followed by a footer naming the host, extension and model](docs/screenshots/report.jpg)
+
+*One report dispatch, run against a simulated host (see [Screenshots](#screenshots)).*
+
 ## Which path to use
 
 Orket 0.8.1+ ships its own governed Gardener harness,
@@ -76,6 +80,22 @@ file or shell tools, only text.
 5. The report is returned with a footer naming the host, extension ID, model
    and cited sources. A model the host didn't report is stated as such, never
    guessed.
+
+```mermaid
+flowchart TD
+    A[gardener starts orket-extension gardener<br/>prompt on stdin, GARDENER_HARNESS_* in env] --> M{mode is report?}
+    M -- no --> X2[refused, exit 2<br/>host never called]
+    M -- yes --> L{prompt within 64,000 chars?}
+    L -- no --> X2
+    L -- yes --> S[build snapshot<br/>named files, docs, git ls-files<br/>refs src01..src99, listing]
+    S --> G[one llm/generate call<br/>to the Orket host]
+    G -- host, config or limit error --> B[E_HOST_* / E_CONFIG_*<br/>blocked: true, exit 1]
+    G -- other host error --> F[error, exit 1]
+    G -- reply --> C{cited_sources}
+    C -- cites nothing --> U[E_REPORT_UNSOURCED, exit 1]
+    C -- cites an unknown ref --> K[E_REPORT_UNKNOWN_SOURCE, exit 1]
+    C -- every citation known --> R[report + provenance footer, exit 0]
+```
 
 The command prints gardener's JSON envelope on stdout. It exits 0 with a
 report, and 2 when the dispatch itself is refused: a mode other than report,
@@ -156,6 +176,33 @@ stops instead of failing every repository the same way:
 
 Any other failure, including any other HTTP error, fails only the current
 repository.
+
+## Screenshots
+
+These are the real stdout and exit codes of `orket-extension gardener`, run in a
+small demo clone against a simulated host: a local stand-in, like the one in
+`tests/test_gardener_cli.py`, that answers `llm/generate` with a canned reply.
+No Orket host or model was involved, so the report text is not model output;
+the snapshot, the citation check, the footer and the envelope are this
+extension's own. Live runs are recorded in
+[docs/verification.md](docs/verification.md).
+
+![Terminal: orket-extension gardener exits 0; the envelope's result is a Markdown report whose every line cites [src01] or [listing], followed by a footer naming the host, extension and model](docs/screenshots/report.jpg)
+
+*A report dispatch: the cited report gardener receives, with its provenance footer.*
+
+![Terminal: three gardener envelopes, E_REPORT_UNKNOWN_SOURCE with exit 1, "report mode only" with exit 2, and E_HOST_UNREACHABLE with blocked true and exit 1](docs/screenshots/refusals.jpg)
+
+*Three dispatches that return no report: a citation of a source the model was
+never given, a non-report mode, and an unreachable host (reported as `blocked`).*
+
+![Terminal: orket-extension --help listing the status, models, generate, gardener and serve subcommands](docs/screenshots/help.jpg)
+
+*`orket-extension --help`: the template's commands plus `gardener`.*
+
+Regenerating screenshots: with the package installed, run
+`darkroom shoot media.json` ([darkroom](https://github.com/Preponderous-Software/darkroom));
+`docs/screenshots/transcripts.py` runs the commands and writes the pages it photographs.
 
 ## Other commands
 
