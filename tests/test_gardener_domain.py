@@ -97,6 +97,20 @@ def test_snapshot_takes_prompt_named_files_only_from_allowed_roots(tmp_path):
     assert all("not for the model" not in s.text for s in sources)
 
 
+def test_a_repository_doc_that_links_outside_the_clone_is_not_read(tmp_path):
+    repo = _repo(tmp_path)
+    secret = tmp_path / "secret.txt"
+    secret.write_text("SENTINEL-OUTSIDE-CLONE\n", encoding="utf-8")
+    (repo / "README.md").unlink()
+    (repo / "README.md").symlink_to(secret)
+    (repo / "docs").mkdir()
+    (repo / "docs" / "guide.md").write_text("# inside\n", encoding="utf-8")
+    (repo / "AGENTS.md").symlink_to(repo / "docs" / "guide.md")
+    sources = collect_sources("", repo, [], SnapshotLimits())
+    assert [(s.ref, s.path) for s in sources] == [("src01", "docs/guide.md"), ("listing", "git ls-files")]
+    assert all("SENTINEL-OUTSIDE-CLONE" not in s.text and str(secret) not in s.path for s in sources)
+
+
 def test_snapshot_respects_byte_budgets(tmp_path):
     repo = _repo(tmp_path)
     (repo / "README.md").write_text("x" * 5000, encoding="utf-8")

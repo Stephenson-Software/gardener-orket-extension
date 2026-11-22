@@ -130,7 +130,7 @@ Optional settings, all read from the environment. Of these, only
 | `GARDENER_ORKET_MAX_TOTAL_BYTES` | `24000` | Snapshot text budget |
 | `GARDENER_ORKET_MAX_FILE_BYTES` | `6000` | Per-file cap |
 | `GARDENER_ORKET_MAX_FILES` | `400` | Listing entries |
-| `GARDENER_ORKET_DOCS` | `README.md,CLAUDE.md,AGENTS.md,CONTRIBUTING.md,SECURITY.md` | Repository docs to include |
+| `GARDENER_ORKET_DOCS` | `README.md,CLAUDE.md,AGENTS.md,CONTRIBUTING.md,SECURITY.md` | Repository docs to include; a doc that resolves outside the clone (for example through a symlink) is skipped |
 | `EXTENSION_TIMEOUT_SECONDS` | `GARDENER_HARNESS_TIMEOUT`, else `300` | Host request timeout, in seconds. `GARDENER_HARNESS_TIMEOUT` also takes precedence over a value in a `--config-dir` file |
 
 These are reported with `"blocked": true`, so a gardener overnight batch
